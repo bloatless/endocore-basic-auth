@@ -5,7 +5,7 @@ namespace Bloatless\Endocore\Components\BasicAuth;
 use Bloatless\Endocore\Http\Request;
 use Bloatless\Endocore\Http\Response;
 
-class  BasicAuth
+class BasicAuth
 {
     /**
      * Valid/known users.

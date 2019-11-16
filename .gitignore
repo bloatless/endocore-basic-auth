@@ -3,4 +3,9 @@
 
 # Composer
 composer.phar
+/composer.lock
 /vendor/
+
+# PHPUnit
+.phpunit.result.cache
+
