@@ -87,7 +87,6 @@ class BasicAuthTest extends TestCase
         $auth = new BasicAuth;
         $result = $auth->isAuthenticated($request);
         $this->assertFalse($result);
-
     }
 
     public function testIsAuthenticatedWithInvalidUsername()
@@ -110,6 +109,22 @@ class BasicAuthTest extends TestCase
         $auth->setUsers($this->config['auth']['users']);
         $result = $auth->isAuthenticated($request);
         $this->assertFalse($result);
+    }
+
+    public function testGetUsernameFromRequestWithValidRequest()
+    {
+        $request = new Request([], [], [
+            'HTTP_AUTHORIZATION' => 'Basic ' . base64_encode('foo:bar'),
+        ]);
+        $auth = new BasicAuth;
+        $this->assertEquals('foo', $auth->getUsernameFromRequest($request));
+    }
+
+    public function testGetUsernameFromRequestWithInvalidRequest()
+    {
+        $request = new Request([], [], []);
+        $auth = new BasicAuth;
+        $this->assertEquals('', $auth->getUsernameFromRequest($request));
     }
 
     public function testRequestAuthorization()

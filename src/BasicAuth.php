@@ -71,6 +71,19 @@ class BasicAuth
     }
 
     /**
+     * Fetches username from http-authorization header.
+     *
+     * @param Request $request
+     * @return string
+     */
+    public function getUsernameFromRequest(Request $request): string
+    {
+        $credentials = $this->getCredentialsFromRequest($request);
+
+        return $credentials['username'] ?? '';
+    }
+
+    /**
      * Parses authorization header and returns credentials.
      *
      * @param Request $request
