@@ -2,48 +2,28 @@
 
 namespace Bloatless\Endocore\Components\BasicAuth\Tests\Unit;
 
+use Bloatless\Endocore\Components\BasicAuth\AuthBackend\ArrayAuthBackend;
 use Bloatless\Endocore\Components\BasicAuth\BasicAuth;
 use Bloatless\Endocore\Http\Request;
 use Bloatless\Endocore\Http\Response;
-use PHPUnit\Framework\TestCase;
 
-class BasicAuthTest extends TestCase
+class BasicAuthTest extends DatabaseTest
 {
     protected $config;
 
+    protected $arrayBackend;
+
     public function setUp(): void
     {
-        $this->config = [
-            'auth' => [
-                'users' => [
-                    'foo' => '$2y$10$hJpespHOJUYzFtHIQk57OusBdwIOXz.8tUdbb9j545Meh2wmeshMm',
-                ]
-            ]
-        ];
-    }
-
-    public function testGetSetUsers()
-    {
-        // set via config
-        $auth = new BasicAuth($this->config['auth']['users']);
-        $users = $auth->getUsers();
-        $this->assertIsArray($users);
-        $this->assertArrayHasKey('foo', $users);
-        $this->assertEquals($this->config['auth']['users']['foo'], $users['foo']);
-
-        // set via setter
-        $auth = new BasicAuth;
-        $this->assertEquals([], $auth->getUsers());
-        $auth->setUsers($this->config['auth']['users']);
-        $users = $auth->getUsers();
-        $this->assertArrayHasKey('foo', $users);
-        $this->assertEquals($this->config['auth']['users']['foo'], $users['foo']);
+        parent::setUp();
+        $this->config = include TESTS_ROOT . '/Fixtures/config.php';
+        $this->arrayBackend = new ArrayAuthBackend($this->config['auth']['backends']['array']['users']);
     }
 
     public function testIsAuthenticatedWithoutHTTPHeader()
     {
         // test without auth header
-        $auth = new BasicAuth;
+        $auth = new BasicAuth($this->arrayBackend);
         $request = new Request;
         $result = $auth->isAuthenticated($request);
         $this->assertFalse($result);
@@ -54,15 +34,14 @@ class BasicAuthTest extends TestCase
         $request = new Request([], [], [
             'HTTP_AUTHORIZATION' => 'Basic ' . base64_encode('foo:bar'),
         ]);
-        $auth = new BasicAuth;
-        $auth->setUsers($this->config['auth']['users']);
+        $auth = new BasicAuth($this->arrayBackend);
         $result = $auth->isAuthenticated($request);
         $this->assertTrue($result);
     }
 
     public function testIsAuthenticatedWithInvalidHttpHeader()
     {
-        $auth = new BasicAuth;
+        $auth = new BasicAuth($this->arrayBackend);
 
         // Header is missing "Basic" keyword
         $request = new Request([], [], [
@@ -79,23 +58,12 @@ class BasicAuthTest extends TestCase
         $this->assertFalse($result);
     }
 
-    public function testIsAuthenticatedWithNoUsersSet()
-    {
-        $request = new Request([], [], [
-            'HTTP_AUTHORIZATION' => 'Basic ' . base64_encode('foo:bar'),
-        ]);
-        $auth = new BasicAuth;
-        $result = $auth->isAuthenticated($request);
-        $this->assertFalse($result);
-    }
-
     public function testIsAuthenticatedWithInvalidUsername()
     {
         $request = new Request([], [], [
             'HTTP_AUTHORIZATION' => 'Basic ' . base64_encode('invalid:bar'),
         ]);
-        $auth = new BasicAuth;
-        $auth->setUsers($this->config['auth']['users']);
+        $auth = new BasicAuth($this->arrayBackend);
         $result = $auth->isAuthenticated($request);
         $this->assertFalse($result);
     }
@@ -105,8 +73,7 @@ class BasicAuthTest extends TestCase
         $request = new Request([], [], [
             'HTTP_AUTHORIZATION' => 'Basic ' . base64_encode('foo:naa'),
         ]);
-        $auth = new BasicAuth;
-        $auth->setUsers($this->config['auth']['users']);
+        $auth = new BasicAuth($this->arrayBackend);
         $result = $auth->isAuthenticated($request);
         $this->assertFalse($result);
     }
@@ -116,20 +83,20 @@ class BasicAuthTest extends TestCase
         $request = new Request([], [], [
             'HTTP_AUTHORIZATION' => 'Basic ' . base64_encode('foo:bar'),
         ]);
-        $auth = new BasicAuth;
+        $auth = new BasicAuth($this->arrayBackend);
         $this->assertEquals('foo', $auth->getUsernameFromRequest($request));
     }
 
     public function testGetUsernameFromRequestWithInvalidRequest()
     {
         $request = new Request([], [], []);
-        $auth = new BasicAuth;
+        $auth = new BasicAuth($this->arrayBackend);
         $this->assertEquals('', $auth->getUsernameFromRequest($request));
     }
 
     public function testRequestAuthorization()
     {
-        $auth = new BasicAuth;
+        $auth = new BasicAuth($this->arrayBackend);
         $response = $auth->requestAuthorization();
         $this->assertInstanceOf(Response::class, $response);
         $this->assertEquals(401, $response->getStatus());
